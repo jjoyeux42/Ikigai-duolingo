@@ -19,11 +19,18 @@ import type { LoginScreenState } from "./LoginScreen";
 import { LoginScreen } from "./LoginScreen";
 import { useLeaderboardRank } from "~/hooks/useLeaderboard";
 
+// Add a type definition for language to fix TypeScript errors
+interface Language {
+  name: string;
+  code?: string;
+}
+
 export const RightBar = () => {
   const loggedIn = useBoundStore((x) => x.loggedIn);
   const lingots = useBoundStore((x) => x.lingots);
   const streak = useBoundStore((x) => x.streak);
-  const language = useBoundStore((x) => x.language);
+  // Add type assertion to fix the 'any' type issues
+  const language = useBoundStore((x) => x.language) as Language;
   const lessonsCompleted = useBoundStore((x) => x.lessonsCompleted);
 
   const [languagesShown, setLanguagesShown] = useState(false);
@@ -48,7 +55,6 @@ export const RightBar = () => {
               My courses
             </h2>
             <button className="flex w-full items-center gap-3 border-t-2 border-gray-300 bg-blue-100 px-5 py-3 text-left font-bold">
-              <Flag language={language} width={45} />
               <span className="text-blue-500">{language.name}</span>
             </button>
             <Link
