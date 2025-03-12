@@ -13,7 +13,6 @@ import {
   SettingsGearSvg,
 } from "~/components/Svgs";
 import Link from "next/link";
-import { Flag } from "~/components/Flag";
 import { useBoundStore } from "~/hooks/useBoundStore";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
@@ -90,7 +89,6 @@ const ProfileTopSection = () => {
           </div>
         </div>
 
-        <Flag language={language} width={40} />
       </div>
       <Link
         href="/settings/account"

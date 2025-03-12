@@ -7,7 +7,7 @@ const Home: NextPage = () => {
   const { loginScreenState, setLoginScreenState } = useLoginScreen();
   
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-[#235390] text-white" style={{ backgroundImage: `url('/bg-pattern.svg')` }}>
+    <main className="flex min-h-screen flex-col items-center justify-center bg-[#3AD278] text-white" style={{ backgroundImage: `url('/bg-pattern.svg')` }}>
       <div className="flex w-full flex-col items-center justify-center gap-3 px-4 py-16 md:flex-row md:gap-36">
         <div className="h-fit w-7/12 md:w-[360px] flex justify-center">
           {/* Logo IKIGAI - un simple cercle avec le texte pour l'instant */}

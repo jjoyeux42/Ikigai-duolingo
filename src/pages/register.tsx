@@ -8,7 +8,7 @@ const Register: NextPage = () => {
   const setActiveIsland = useBoundStore((x) => x.setLanguage); // Réutilisation de la fonction existante
   
   return (
-    <main className="flex min-h-screen flex-col items-center bg-[#235390] text-white">
+    <main className="flex min-h-screen flex-col items-center bg-[#fffff] text-[#3AD278]">
       <LanguageHeader />
       <div className="container flex grow flex-col items-center justify-center gap-20 px-4 py-16">
         <h1 className="mt-20 text-center text-3xl font-extrabold tracking-tight text-white">

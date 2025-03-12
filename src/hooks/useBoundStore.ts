@@ -65,17 +65,17 @@ export type BoundStateCreator<SliceState> = StateCreator<
 >;
 
 export const useBoundStore = create<BoundState>((set, get) => ({
-  ...createGoalXpSlice(set, get),
-  ...createLanguageSlice(set, get),
-  ...createLessonSlice(set, get),
-  ...createLingotSlice(set, get),
-  ...createSoundSettingsSlice(set, get),
-  ...createStreakSlice(set, get),
-  ...createUserSlice(set, get),
-  ...createXpSlice(set, get),
-  ...createWellnessSlice(set, get),
-  ...createModuleSlice(set, get),
-  ...createBadgeSlice(set, get),
-  ...createChallengeSlice(set, get),
-  ...createIslandSlice(set, get),
+  ...createGoalXpSlice(set, get, {}), // Added empty object as third argument
+  ...createLanguageSlice(set, get, {}), // Added empty object as third argument
+  ...createLessonSlice(set, get, {}), // Added empty object as third argument
+  ...createLingotSlice(set, get, {}), // Added empty object as third argument
+  ...createSoundSettingsSlice(set, get, {}), // Added empty object as third argument
+  ...createStreakSlice(set, get, {}), // Added empty object as third argument
+  ...createUserSlice(set, get, {}), // Added empty object as third argument
+  ...createXpSlice(set, get, {}), // Added empty object as third argument
+  ...createWellnessSlice(set, get, {}), // Added empty object as third argument
+  ...createModuleSlice(set, get, {}), // Added empty object as third argument
+  ...createBadgeSlice(set, get, {}), // Added empty object as third argument
+  ...createChallengeSlice(set, get, {}), // Added empty object as third argument
+  ...createIslandSlice(set, get, {}), // Added empty object as third argument
 }));

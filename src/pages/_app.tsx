@@ -14,7 +14,7 @@ const MyApp: AppType = ({ Component, pageProps }) => {
           content="Assistant personnel pour une meilleure qualité de vie"
         />
         <link rel="icon" href="/favicon.ico" />
-        <meta name="theme-color" content="#41D185" />
+        <meta name="theme-color" content="#3AD278" />
         <link rel="manifest" href="/app.webmanifest" />
       </Head>
       <Component {...pageProps} />

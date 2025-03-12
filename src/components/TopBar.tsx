@@ -4,7 +4,6 @@ import type { ComponentProps } from "react";
 import React, { useState } from "react";
 import { useBoundStore } from "~/hooks/useBoundStore";
 import { Calendar } from "./Calendar";
-import { Flag } from "./Flag";
 
 // Icônes IKIGAI
 const FireSvg = (props: ComponentProps<"svg">) => (
