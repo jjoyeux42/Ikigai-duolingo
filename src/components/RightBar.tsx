@@ -30,7 +30,7 @@ export const RightBar = () => {
   const lingots = useBoundStore((x) => x.lingots);
   const streak = useBoundStore((x) => x.streak);
   // Add type assertion to fix the 'any' type issues
-  const language = useBoundStore((x) => x.language) as Language;
+  const language = useBoundStore((x) => x.language) as Language | undefined;
   const lessonsCompleted = useBoundStore((x) => x.lessonsCompleted);
 
   const [languagesShown, setLanguagesShown] = useState(false);
@@ -55,7 +55,7 @@ export const RightBar = () => {
               My courses
             </h2>
             <button className="flex w-full items-center gap-3 border-t-2 border-gray-300 bg-blue-100 px-5 py-3 text-left font-bold">
-              <span className="text-blue-500">{language.name}</span>
+              <span className="text-blue-500">{language?.name || 'Aucun cours sélectionné'}</span>
             </button>
             <Link
               className="flex w-full items-center gap-3 rounded-b-2xl border-t-2 border-gray-300 px-5 py-3 text-left font-bold hover:bg-gray-100"
