@@ -37,7 +37,7 @@ import type { Tile, TileType, Unit } from "~/utils/units";
 import { units } from "~/utils/units";
 import { islands } from "~/utils/islands";
 
-type TileStatus = "LOCKED" | "ACTIVE" | "COMPLETE";
+type TileStatus = "Verrouillé" | "En cours" | "Complété";
 
 const tileStatus = (tile: Tile, lessonsCompleted: number): TileStatus => {
   const lessonsPerTile = 4;

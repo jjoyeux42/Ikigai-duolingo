@@ -1,11 +1,10 @@
 import { useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/router";
 import { useState, useRef } from "react";
 import { useBoundStore } from "~/hooks/useBoundStore";
 
-// SVG Components (assuming these are defined elsewhere)
+// SVG Components
 import {
   CloseSvg,
   DoneSvg,
@@ -17,28 +16,40 @@ import {
   LessonFastForwardEndPassSvg,
 } from "~/components/Svgs";
 
-// IKIGAI/QVCT-themed images
-import meditationPng from "~/public/meditation.png"; // Replace with actual path to meditation image
-
-const lessonProblem1 = {
-  type: "SELECT_1_OF_3",
-  question: `Which of these represents "Work-Life Balance"?`,
+// IKIGAI Lesson Problems
+const ikigaiProblem1 = {
+  type: "SELECT_MULTIPLE",
+  question: "Quelles activités ou hobbies vous font perdre la notion du temps et vous remplissent de joie ?",
   answers: [
-    { icon: <div className="text-5xl">⚖️</div>, name: "Balance" },
-    { icon: <div className="text-5xl">💤</div>, name: "Sleep" },
-    { icon: <div className="text-5xl">📱</div>, name: "Technology" },
+    { icon: <div className="text-5xl">📚</div>, name: "Lecture" },
+    { icon: <div className="text-5xl">🎵</div>, name: "Musique" },
+    { icon: <div className="text-5xl">🏃</div>, name: "Sport" },
+    { icon: <div className="text-5xl">✈️</div>, name: "Voyages" },
+    { icon: <div className="text-5xl">🎭</div>, name: "Art/Culture" },
+    { icon: <div className="text-5xl">🍳</div>, name: "Cuisine" },
+    { icon: <div className="text-5xl">✨</div>, name: "Autre" },
   ],
-  correctAnswer: 0,
+  isPersonalQuestion: true,
 } as const;
 
-const lessonProblem2 = {
-  type: "WRITE",
-  question: "Mindful Breathing",
-  answerTiles: ["Practice", "Mindful", "Breathing", "Daily", "For", "Wellness"],
-  correctAnswer: [1, 2, 0],
+const ikigaiProblem2 = {
+  type: "TEXT_INPUT",
+  question: "Si vous pouviez consacrer tout votre temps à une seule activité, laquelle choisiriez-vous et pourquoi ?",
+  placeholder: "Ex. Écrire des récits, car cela me permet d'exprimer mes émotions.",
+  maxLength: 100,
+  isPersonalQuestion: true,
 } as const;
 
-const lessonProblems = [lessonProblem1, lessonProblem2];
+const ikigaiProblem3 = {
+  type: "TEXT_INPUT_WITH_SUGGESTIONS",
+  question: "Quelles expériences passées vous ont procuré le plus de satisfaction et de plaisir ?",
+  placeholder: "Décrivez une expérience qui vous a vraiment satisfait...",
+  suggestions: ["Voyage", "Collaboration", "Projet créatif", "Enseignement", "Réalisation personnelle"],
+  isPersonalQuestion: true,
+} as const;
+
+// Create the IKIGAI lesson array
+const ikigaiProblems = [ikigaiProblem1, ikigaiProblem2, ikigaiProblem3];
 
 const numbersEqual = (a: readonly number[], b: readonly number[]): boolean => {
   return a.length === b.length && a.every((_, i) => a[i] === b[i]);
@@ -63,6 +74,7 @@ const Lesson = () => {
   const [correctAnswerShown, setCorrectAnswerShown] = useState(false);
   const [quitMessageShown, setQuitMessageShown] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
+  const [textAnswer, setTextAnswer] = useState("");
 
   const startTime = useRef(Date.now());
   const endTime = useRef(startTime.current + 1000 * 60 * 3 + 1000 * 33);
@@ -70,9 +82,13 @@ const Lesson = () => {
   const [questionResults, setQuestionResults] = useState<QuestionResult[]>([]);
   const [reviewLessonShown, setReviewLessonShown] = useState(false);
 
-  const problem = lessonProblems[lessonProblem] ?? lessonProblem1;
+  // Change this to choose between regular lessons and IKIGAI lessons
+  const useIkigaiLesson = true;
+  const problems = useIkigaiLesson ? ikigaiProblems : lessonProblems;
+  
+  const problem = problems[lessonProblem] ?? lessonProblems[0];
 
-  const totalCorrectAnswersNeeded = 2;
+  const totalCorrectAnswersNeeded = useIkigaiLesson ? ikigaiProblems.length : 2;
 
   const [isStartingLesson, setIsStartingLesson] = useState(true);
   const hearts =
@@ -81,10 +97,20 @@ const Lesson = () => {
       ? 3 - incorrectAnswerCount
       : null;
 
-  const { correctAnswer } = problem;
-  const isAnswerCorrect = Array.isArray(correctAnswer)
-    ? numbersEqual(selectedAnswers, correctAnswer)
-    : selectedAnswer === correctAnswer;
+  const isAnswerCorrect = (() => {
+    if ('isPersonalQuestion' in problem && problem.isPersonalQuestion) return true;
+    
+    if (problem.type === "SELECT_1_OF_3") {
+      return selectedAnswer === problem.correctAnswer;
+    } else if (problem.type === "WRITE") {
+      return numbersEqual(selectedAnswers, problem.correctAnswer);
+    } else if (problem.type === "SELECT_MULTIPLE" || 
+               problem.type === "TEXT_INPUT" ||
+               problem.type === "TEXT_INPUT_WITH_SUGGESTIONS") {
+      return true; // These are personal questions and always "correct"
+    }
+    return false;
+  })();
 
   const onCheckAnswer = () => {
     setCorrectAnswerShown(true);
@@ -93,34 +119,42 @@ const Lesson = () => {
     } else {
       setIncorrectAnswerCount((x) => x + 1);
     }
-    setQuestionResults((questionResults) => [
-      ...questionResults,
-      {
-        question: problem.question,
-        yourResponse:
-          problem.type === "SELECT_1_OF_3"
-            ? problem.answers[selectedAnswer ?? 0]?.name ?? ""
-            : selectedAnswers.map((i) => problem.answerTiles[i]).join(" "),
-        correctResponse:
-          problem.type === "SELECT_1_OF_3"
-            ? problem.answers[problem.correctAnswer].name
-            : problem.correctAnswer
-                .map((i) => problem.answerTiles[i])
-                .join(" "),
-      },
-    ]);
+    
+    // Save question results for review
+    const newQuestionResult = {
+      question: problem.question,
+      yourResponse: '',
+      correctResponse: 'Réponse personnelle',
+    };
+
+    if (problem.type === "SELECT_1_OF_3") {
+      newQuestionResult.yourResponse = problem.answers[selectedAnswer ?? 0]?.name ?? "";
+      newQuestionResult.correctResponse = problem.answers[problem.correctAnswer].name;
+    } else if (problem.type === "WRITE") {
+      newQuestionResult.yourResponse = selectedAnswers.map((i) => problem.answerTiles[i]).join(" ");
+      newQuestionResult.correctResponse = problem.correctAnswer.map((i) => problem.answerTiles[i]).join(" ");
+    } else if (problem.type === "SELECT_MULTIPLE") {
+      newQuestionResult.yourResponse = selectedAnswers.map((i) => problem.answers[i].name).join(", ");
+    } else if (problem.type === "TEXT_INPUT" || problem.type === "TEXT_INPUT_WITH_SUGGESTIONS") {
+      newQuestionResult.yourResponse = textAnswer;
+    }
+
+    setQuestionResults((questionResults) => [...questionResults, newQuestionResult]);
   };
 
   const onFinish = () => {
     setSelectedAnswer(null);
     setSelectedAnswers([]);
+    setTextAnswer("");
     setCorrectAnswerShown(false);
-    setLessonProblem((x) => (x + 1) % lessonProblems.length);
+    setLessonProblem((x) => (x + 1) % problems.length);
     endTime.current = Date.now();
   };
 
   const onSkip = () => {
     setSelectedAnswer(null);
+    setSelectedAnswers([]);
+    setTextAnswer("");
     setCorrectAnswerShown(true);
   };
 
@@ -147,7 +181,7 @@ const Lesson = () => {
     if (correctAnswerCount >= totalCorrectAnswersNeeded && !correctAnswerShown) {
       return;
     }
-  }, [hearts, correctAnswerCount, correctAnswerShown, isStartingLesson]);
+  }, [hearts, correctAnswerCount, correctAnswerShown, isStartingLesson, totalCorrectAnswersNeeded]);
 
   // Determine which component to render based on lesson state
   let content;
@@ -192,10 +226,11 @@ const Lesson = () => {
         reviewLessonShown={reviewLessonShown}
         setReviewLessonShown={setReviewLessonShown}
         questionResults={questionResults}
+        isIkigaiLesson={useIkigaiLesson}
       />
     );
   } else {
-    // Regular lesson content
+    // Regular lesson content based on problem type
     switch (problem.type) {
       case "SELECT_1_OF_3": {
         content = (
@@ -226,6 +261,69 @@ const Lesson = () => {
             totalCorrectAnswersNeeded={totalCorrectAnswersNeeded}
             selectedAnswers={selectedAnswers}
             setSelectedAnswers={setSelectedAnswers}
+            quitMessageShown={quitMessageShown}
+            correctAnswerShown={correctAnswerShown}
+            setQuitMessageShown={setQuitMessageShown}
+            isAnswerCorrect={isAnswerCorrect}
+            onCheckAnswer={onCheckAnswer}
+            onFinish={onFinish}
+            onSkip={onSkip}
+            hearts={hearts}
+          />
+        );
+        break;
+      }
+
+      case "SELECT_MULTIPLE": {
+        content = (
+          <ProblemSelectMultiple
+            problem={problem}
+            correctAnswerCount={correctAnswerCount}
+            totalCorrectAnswersNeeded={totalCorrectAnswersNeeded}
+            selectedAnswers={selectedAnswers}
+            setSelectedAnswers={setSelectedAnswers}
+            quitMessageShown={quitMessageShown}
+            correctAnswerShown={correctAnswerShown}
+            setQuitMessageShown={setQuitMessageShown}
+            isAnswerCorrect={isAnswerCorrect}
+            onCheckAnswer={onCheckAnswer}
+            onFinish={onFinish}
+            onSkip={onSkip}
+            hearts={hearts}
+          />
+        );
+        break;
+      }
+
+      case "TEXT_INPUT": {
+        content = (
+          <ProblemTextInput
+            problem={problem}
+            correctAnswerCount={correctAnswerCount}
+            totalCorrectAnswersNeeded={totalCorrectAnswersNeeded}
+            textAnswer={textAnswer}
+            setTextAnswer={setTextAnswer}
+            quitMessageShown={quitMessageShown}
+            correctAnswerShown={correctAnswerShown}
+            setQuitMessageShown={setQuitMessageShown}
+            isAnswerCorrect={isAnswerCorrect}
+            onCheckAnswer={onCheckAnswer}
+            onFinish={onFinish}
+            onSkip={onSkip}
+            hearts={hearts}
+          />
+        );
+        break;
+      }
+
+      case "TEXT_INPUT_WITH_SUGGESTIONS": {
+        content = (
+          <ProblemTextInputWithSuggestions
+            problem={problem}
+            correctAnswerCount={correctAnswerCount}
+            totalCorrectAnswersNeeded={totalCorrectAnswersNeeded}
+            textAnswer={textAnswer}
+            setTextAnswer={setTextAnswer}
             quitMessageShown={quitMessageShown}
             correctAnswerShown={correctAnswerShown}
             setQuitMessageShown={setQuitMessageShown}
@@ -369,6 +467,7 @@ const CheckAnswer = ({
   onCheckAnswer,
   onFinish,
   onSkip,
+  isPersonalQuestion = false,
 }: {
   isAnswerSelected: boolean;
   isAnswerCorrect: boolean;
@@ -377,6 +476,7 @@ const CheckAnswer = ({
   onCheckAnswer: () => void;
   onFinish: () => void;
   onSkip: () => void;
+  isPersonalQuestion?: boolean;
 }) => {
   return (
     <>
@@ -393,14 +493,14 @@ const CheckAnswer = ({
               className="grow rounded-2xl bg-gray-200 p-3 font-bold uppercase text-gray-400 sm:min-w-[150px] sm:max-w-fit sm:grow-0"
               disabled
             >
-              Check
+              {isPersonalQuestion ? "Continuer" : "Check"}
             </button>
           ) : (
             <button
               onClick={onCheckAnswer}
               className="grow rounded-2xl border-b-4 border-green-600 bg-green-500 p-3 font-bold uppercase text-white sm:min-w-[150px] sm:max-w-fit sm:grow-0"
             >
-              Check
+              {isPersonalQuestion ? "Continuer" : "Check"}
             </button>
           )}
         </div>
@@ -417,7 +517,14 @@ const CheckAnswer = ({
       >
         <div className="flex max-w-5xl flex-col gap-4 p-5 sm:mx-auto sm:flex-row sm:items-center sm:justify-between sm:p-10 sm:py-14">
           <>
-            {isAnswerCorrect ? (
+            {isPersonalQuestion ? (
+              <div className="mb-2 flex flex-col gap-5 sm:flex-row sm:items-center">
+                <div className="hidden rounded-full bg-white p-5 text-green-500 sm:block">
+                  <DoneSvg />
+                </div>
+                <div className="text-2xl">Merci pour cette réflexion !</div>
+              </div>
+            ) : isAnswerCorrect ? (
               <div className="mb-2 flex flex-col gap-5 sm:flex-row sm:items-center">
                 <div className="hidden rounded-full bg-white p-5 text-green-500 sm:block">
                   <DoneSvg />
@@ -439,7 +546,7 @@ const CheckAnswer = ({
           <button
             onClick={onFinish}
             className={
-              isAnswerCorrect
+              isAnswerCorrect || isPersonalQuestion
                 ? "w-full rounded-2xl border-b-4 border-green-600 bg-green-500 p-3 font-bold uppercase text-white transition hover:brightness-105 sm:min-w-[150px] sm:max-w-fit"
                 : "w-full rounded-2xl border-b-4 border-red-600 bg-red-500 p-3 font-bold uppercase text-white transition hover:brightness-105 sm:min-w-[150px] sm:max-w-fit"
             }
@@ -467,7 +574,7 @@ const ProblemSelect1Of3 = ({
   onSkip,
   hearts,
 }: {
-  problem: typeof lessonProblem1;
+  problem: typeof ikigaiProblem1;
   correctAnswerCount: number;
   totalCorrectAnswersNeeded: number;
   selectedAnswer: number | null;
@@ -481,7 +588,8 @@ const ProblemSelect1Of3 = ({
   onSkip: () => void;
   hearts: number | null;
 }) => {
-  const { question, answers, correctAnswer } = problem;
+  const { question, answers } = problem;
+  const isPersonalQuestion = 'isPersonalQuestion' in problem && problem.isPersonalQuestion;
 
   return (
     <div className="flex min-h-screen flex-col gap-5 px-4 py-5 sm:px-0 sm:py-0">
@@ -526,13 +634,14 @@ const ProblemSelect1Of3 = ({
       </div>
 
       <CheckAnswer
-        correctAnswer={answers[correctAnswer].name}
+        correctAnswer={answers[problem.correctAnswer].name}
         correctAnswerShown={correctAnswerShown}
         isAnswerCorrect={isAnswerCorrect}
         isAnswerSelected={selectedAnswer !== null}
         onCheckAnswer={onCheckAnswer}
         onFinish={onFinish}
         onSkip={onSkip}
+        isPersonalQuestion={isPersonalQuestion}
       />
 
       <QuitMessage
@@ -558,7 +667,7 @@ const ProblemWrite = ({
   onSkip,
   hearts,
 }: {
-  problem: typeof lessonProblem2;
+  problem: typeof ikigaiProblem2;
   correctAnswerCount: number;
   totalCorrectAnswersNeeded: number;
   selectedAnswers: number[];
@@ -572,7 +681,8 @@ const ProblemWrite = ({
   onSkip: () => void;
   hearts: number | null;
 }) => {
-  const { question, correctAnswer, answerTiles } = problem;
+  const { question, answerTiles } = problem;
+  const isPersonalQuestion = 'isPersonalQuestion' in problem && problem.isPersonalQuestion;
 
   return (
     <div className="flex min-h-screen flex-col gap-5 px-4 py-5 sm:px-0 sm:py-0">
@@ -652,13 +762,310 @@ const ProblemWrite = ({
       </div>
 
       <CheckAnswer
-        correctAnswer={correctAnswer.map((i) => answerTiles[i]).join(" ")}
+        correctAnswer={problem.correctAnswer.map((i) => answerTiles[i]).join(" ")}
         correctAnswerShown={correctAnswerShown}
         isAnswerCorrect={isAnswerCorrect}
         isAnswerSelected={selectedAnswers.length > 0}
         onCheckAnswer={onCheckAnswer}
         onFinish={onFinish}
         onSkip={onSkip}
+        isPersonalQuestion={isPersonalQuestion}
+      />
+
+      <QuitMessage
+        quitMessageShown={quitMessageShown}
+        setQuitMessageShown={setQuitMessageShown}
+      />
+    </div>
+  );
+};
+
+// New problem type for multiple selection questions
+const ProblemSelectMultiple = ({
+  problem,
+  correctAnswerCount,
+  totalCorrectAnswersNeeded,
+  selectedAnswers,
+  setSelectedAnswers,
+  quitMessageShown,
+  correctAnswerShown,
+  setQuitMessageShown,
+  isAnswerCorrect,
+  onCheckAnswer,
+  onFinish,
+  onSkip,
+  hearts,
+}: {
+  problem: typeof ikigaiProblem1;
+  correctAnswerCount: number;
+  totalCorrectAnswersNeeded: number;
+  selectedAnswers: number[];
+  setSelectedAnswers: React.Dispatch<React.SetStateAction<number[]>>;
+  correctAnswerShown: boolean;
+  quitMessageShown: boolean;
+  setQuitMessageShown: React.Dispatch<React.SetStateAction<boolean>>;
+  isAnswerCorrect: boolean;
+  onCheckAnswer: () => void;
+  onFinish: () => void;
+  onSkip: () => void;
+  hearts: number | null;
+}) => {
+  const { question, answers } = problem;
+  const [otherText, setOtherText] = useState("");
+
+  return (
+    <div className="flex min-h-screen flex-col gap-5 px-4 py-5 sm:px-0 sm:py-0">
+      <div className="flex grow flex-col items-center gap-5">
+        <div className="w-full max-w-5xl sm:mt-8 sm:px-5">
+          <ProgressBar
+            correctAnswerCount={correctAnswerCount}
+            totalCorrectAnswersNeeded={totalCorrectAnswersNeeded}
+            setQuitMessageShown={setQuitMessageShown}
+            hearts={hearts}
+          />
+        </div>
+        <section className="flex max-w-2xl grow flex-col gap-5 self-center sm:items-center sm:justify-center sm:gap-24 sm:px-5">
+          <h1 className="self-start text-2xl font-bold sm:text-3xl">
+            {question}
+          </h1>
+          <div
+            className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+            role="group"
+          >
+            {answers.map((answer, i) => {
+              const isSelected = selectedAnswers.includes(i);
+              const isOther = answer.name === "Autre";
+              
+              return (
+                <div key={i} className="flex flex-col">
+                  <div
+                    className={
+                      isSelected
+                        ? "cursor-pointer rounded-xl border-2 border-b-4 border-blue-300 bg-blue-100 p-4 text-blue-400"
+                        : "cursor-pointer rounded-xl border-2 border-b-4 border-gray-200 p-4 hover:bg-gray-100"
+                    }
+                    role="checkbox"
+                    aria-checked={isSelected}
+                    tabIndex={0}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedAnswers(selectedAnswers.filter(id => id !== i));
+                      } else {
+                        setSelectedAnswers([...selectedAnswers, i]);
+                      }
+                    }}
+                  >
+                    {answer.icon}
+                    <h2 className="text-center">{answer.name}</h2>
+                  </div>
+                  
+                  {isSelected && isOther && (
+                    <input
+                      type="text"
+                      value={otherText}
+                      onChange={(e) => setOtherText(e.target.value)}
+                      placeholder="Précisez..."
+                      className="mt-2 rounded-xl border-2 border-blue-300 p-2 text-sm"
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+
+      <CheckAnswer
+        correctAnswer=""
+        correctAnswerShown={correctAnswerShown}
+        isAnswerCorrect={true} // IKIGAI questions are always "correct"
+        isAnswerSelected={selectedAnswers.length > 0}
+        onCheckAnswer={onCheckAnswer}
+        onFinish={onFinish}
+        onSkip={onSkip}
+        isPersonalQuestion={true}
+      />
+
+      <QuitMessage
+        quitMessageShown={quitMessageShown}
+        setQuitMessageShown={setQuitMessageShown}
+      />
+    </div>
+  );
+};
+
+// Problem component for text input questions
+const ProblemTextInput = ({
+  problem,
+  correctAnswerCount,
+  totalCorrectAnswersNeeded,
+  textAnswer,
+  setTextAnswer,
+  quitMessageShown,
+  correctAnswerShown,
+  setQuitMessageShown,
+  isAnswerCorrect,
+  onCheckAnswer,
+  onFinish,
+  onSkip,
+  hearts,
+}: {
+  problem: typeof ikigaiProblem2;
+  correctAnswerCount: number;
+  totalCorrectAnswersNeeded: number;
+  textAnswer: string;
+  setTextAnswer: React.Dispatch<React.SetStateAction<string>>;
+  correctAnswerShown: boolean;
+  quitMessageShown: boolean;
+  setQuitMessageShown: React.Dispatch<React.SetStateAction<boolean>>;
+  isAnswerCorrect: boolean;
+  onCheckAnswer: () => void;
+  onFinish: () => void;
+  onSkip: () => void;
+  hearts: number | null;
+}) => {
+  const { question, placeholder, maxLength } = problem;
+
+  return (
+    <div className="flex min-h-screen flex-col gap-5 px-4 py-5 sm:px-0 sm:py-0">
+      <div className="flex grow flex-col items-center gap-5">
+        <div className="w-full max-w-5xl sm:mt-8 sm:px-5">
+          <ProgressBar
+            correctAnswerCount={correctAnswerCount}
+            totalCorrectAnswersNeeded={totalCorrectAnswersNeeded}
+            setQuitMessageShown={setQuitMessageShown}
+            hearts={hearts}
+          />
+        </div>
+        <section className="flex max-w-2xl grow flex-col gap-5 self-center sm:items-center sm:justify-center sm:gap-24 sm:px-5">
+          <h1 className="self-start text-2xl font-bold sm:text-3xl">
+            {question}
+          </h1>
+          
+          <div className="w-full">
+            <textarea
+              value={textAnswer}
+              onChange={(e) => setTextAnswer(e.target.value.slice(0, maxLength))}
+              placeholder={placeholder}
+              className="w-full rounded-xl border-2 border-gray-200 p-4 focus:border-blue-400 focus:outline-none"
+              rows={4}
+            />
+            <div className="mt-2 text-right text-sm text-gray-500">
+              {textAnswer.length}/{maxLength} caractères
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <CheckAnswer
+        correctAnswer=""
+        correctAnswerShown={correctAnswerShown}
+        isAnswerCorrect={true} // IKIGAI questions are always "correct"
+        isAnswerSelected={textAnswer.trim().length > 0}
+        onCheckAnswer={onCheckAnswer}
+        onFinish={onFinish}
+        onSkip={onSkip}
+        isPersonalQuestion={true}
+      />
+
+      <QuitMessage
+        quitMessageShown={quitMessageShown}
+        setQuitMessageShown={setQuitMessageShown}
+      />
+    </div>
+  );
+};
+
+// Problem component for text input with suggestions
+const ProblemTextInputWithSuggestions = ({
+  problem,
+  correctAnswerCount,
+  totalCorrectAnswersNeeded,
+  textAnswer,
+  setTextAnswer,
+  quitMessageShown,
+  correctAnswerShown,
+  setQuitMessageShown,
+  isAnswerCorrect,
+  onCheckAnswer,
+  onFinish,
+  onSkip,
+  hearts,
+}: {
+  problem: typeof ikigaiProblem3;
+  correctAnswerCount: number;
+  totalCorrectAnswersNeeded: number;
+  textAnswer: string;
+  setTextAnswer: React.Dispatch<React.SetStateAction<string>>;
+  correctAnswerShown: boolean;
+  quitMessageShown: boolean;
+  setQuitMessageShown: React.Dispatch<React.SetStateAction<boolean>>;
+  isAnswerCorrect: boolean;
+  onCheckAnswer: () => void;
+  onFinish: () => void;
+  onSkip: () => void;
+  hearts: number | null;
+}) => {
+  const { question, placeholder, suggestions } = problem;
+
+  return (
+    <div className="flex min-h-screen flex-col gap-5 px-4 py-5 sm:px-0 sm:py-0">
+      <div className="flex grow flex-col items-center gap-5">
+        <div className="w-full max-w-5xl sm:mt-8 sm:px-5">
+          <ProgressBar
+            correctAnswerCount={correctAnswerCount}
+            totalCorrectAnswersNeeded={totalCorrectAnswersNeeded}
+            setQuitMessageShown={setQuitMessageShown}
+            hearts={hearts}
+          />
+        </div>
+        <section className="flex max-w-2xl grow flex-col gap-5 self-center sm:items-center sm:justify-center sm:gap-24 sm:px-5">
+          <h1 className="self-start text-2xl font-bold sm:text-3xl">
+            {question}
+          </h1>
+          
+          <div className="w-full">
+            <textarea
+              value={textAnswer}
+              onChange={(e) => setTextAnswer(e.target.value)}
+              placeholder={placeholder}
+              className="w-full rounded-xl border-2 border-gray-200 p-4 focus:border-blue-400 focus:outline-none"
+              rows={4}
+            />
+            
+            <div className="mt-4">
+              <p className="mb-2 text-sm text-gray-500">Suggestions :</p>
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((suggestion, i) => (
+                  <button
+                    key={i}
+                    className="rounded-xl border-2 border-gray-200 px-3 py-1 text-sm hover:border-blue-300 hover:bg-blue-50"
+                    onClick={() => {
+                      if (textAnswer) {
+                        setTextAnswer(`${textAnswer}, ${suggestion}`);
+                      } else {
+                        setTextAnswer(suggestion);
+                      }
+                    }}
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <CheckAnswer
+        correctAnswer=""
+        correctAnswerShown={correctAnswerShown}
+        isAnswerCorrect={true} // IKIGAI questions are always "correct"
+        isAnswerSelected={textAnswer.trim().length > 0}
+        onCheckAnswer={onCheckAnswer}
+        onFinish={onFinish}
+        onSkip={onSkip}
+        isPersonalQuestion={true}
       />
 
       <QuitMessage
@@ -683,6 +1090,7 @@ const LessonComplete = ({
   reviewLessonShown,
   setReviewLessonShown,
   questionResults,
+  isIkigaiLesson = true,
 }: {
   correctAnswerCount: number;
   incorrectAnswerCount: number;
@@ -691,6 +1099,7 @@ const LessonComplete = ({
   reviewLessonShown: boolean;
   setReviewLessonShown: React.Dispatch<React.SetStateAction<boolean>>;
   questionResults: QuestionResult[];
+  isIkigaiLesson?: boolean;
 }) => {
   const router = useRouter();
   const isPractice = "practice" in router.query;
@@ -705,33 +1114,44 @@ const LessonComplete = ({
     <div className="flex min-h-screen flex-col gap-5 px-4 py-5 sm:px-0 sm:py-0">
       <div className="flex grow flex-col items-center justify-center gap-8 font-bold">
         <h1 className="text-center text-3xl text-yellow-400">
-          Wellness Lesson Complete!
+          {isIkigaiLesson ? "Réflexion IKIGAI Complète !" : "Wellness Lesson Complete!"}
         </h1>
         <div className="flex flex-wrap justify-center gap-5">
           <div className="min-w-[110px] rounded-xl border-2 border-yellow-400 bg-yellow-400">
-            <h2 className="py-1 text-center text-white">Total XP</h2>
+            <h2 className="py-1 text-center text-white">Points</h2>
             <div className="flex justify-center rounded-xl bg-white py-4 text-yellow-400">
-              {correctAnswerCount}
+              {correctAnswerCount * 10}
             </div>
           </div>
           <div className="min-w-[110px] rounded-xl border-2 border-blue-400 bg-blue-400">
-            <h2 className="py-1 text-center text-white">Focus Time</h2>
+            <h2 className="py-1 text-center text-white">Temps</h2>
             <div className="flex justify-center rounded-xl bg-white py-4 text-blue-400">
               {formatTime(endTime.current - startTime.current)}
             </div>
           </div>
-          <div className="min-w-[110px] rounded-xl border-2 border-green-400 bg-green-400">
-            <h2 className="py-1 text-center text-white">Mindfulness</h2>
-            <div className="flex justify-center rounded-xl bg-white py-4 text-green-400">
-              {Math.round(
-                (correctAnswerCount /
-                  (correctAnswerCount + incorrectAnswerCount)) *
-                  100,
-              )}
-              %
+          {!isIkigaiLesson && (
+            <div className="min-w-[110px] rounded-xl border-2 border-green-400 bg-green-400">
+              <h2 className="py-1 text-center text-white">Mindfulness</h2>
+              <div className="flex justify-center rounded-xl bg-white py-4 text-green-400">
+                {Math.round(
+                  (correctAnswerCount /
+                    (correctAnswerCount + incorrectAnswerCount)) *
+                    100,
+                )}
+                %
+              </div>
             </div>
-          </div>
+          )}
         </div>
+        
+        {isIkigaiLesson && (
+          <div className="max-w-md rounded-xl bg-blue-50 p-5 text-center">
+            <p className="text-blue-800">
+              Merci pour vos réponses ! Elles contribuent à définir votre IKIGAI - votre raison d'être. 
+              Continuez votre parcours pour découvrir davantage sur vous-même.
+            </p>
+          </div>
+        )}
       </div>
       <section className="border-gray-200 sm:border-t-2 sm:p-10">
         <div className="mx-auto flex max-w-5xl sm:justify-between">
@@ -739,7 +1159,7 @@ const LessonComplete = ({
             className="hidden rounded-2xl border-2 border-b-4 border-gray-200 bg-white p-3 font-bold uppercase text-gray-400 transition hover:border-gray-300 hover:bg-gray-200 sm:block sm:min-w-[150px] sm:max-w-fit"
             onClick={() => setReviewLessonShown(true)}
           >
-            Review lesson
+            {isIkigaiLesson ? "Revoir mes réponses" : "Review lesson"}
           </button>
           <Link
             className={
@@ -747,7 +1167,7 @@ const LessonComplete = ({
             }
             href="/learn"
             onClick={() => {
-              increaseXp(correctAnswerCount);
+              increaseXp(correctAnswerCount * 10);
               addToday();
               increaseLingots(isPractice ? 0 : 1);
               if (!isPractice) {
@@ -763,6 +1183,7 @@ const LessonComplete = ({
         reviewLessonShown={reviewLessonShown}
         setReviewLessonShown={setReviewLessonShown}
         questionResults={questionResults}
+        isIkigaiLesson={isIkigaiLesson}
       />
     </div>
   );
@@ -772,10 +1193,12 @@ const ReviewLesson = ({
   reviewLessonShown,
   setReviewLessonShown,
   questionResults,
+  isIkigaiLesson = false,
 }: {
   reviewLessonShown: boolean;
   setReviewLessonShown: React.Dispatch<React.SetStateAction<boolean>>;
   questionResults: QuestionResult[];
+  isIkigaiLesson?: boolean;
 }) => {
   const [selectedQuestionResult, setSelectedQuestionResult] =
     useState<null | QuestionResult>(null);
@@ -801,18 +1224,25 @@ const ReviewLesson = ({
           <BigCloseSvg className="h-8 w-8" />
           <span className="sr-only">Close</span>
         </button>
-        <h2 className="text-center text-3xl">Your Wellness Insights</h2>
+        <h2 className="text-center text-3xl">
+          {isIkigaiLesson ? "Vos Réponses IKIGAI" : "Your Wellness Insights"}
+        </h2>
         <p className="text-center text-xl text-gray-400">
-          Click the tiles below to review your responses
+          {isIkigaiLesson 
+            ? "Cliquez sur les cartes ci-dessous pour revoir vos réponses" 
+            : "Click the tiles below to review your responses"}
         </p>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {questionResults.map((questionResult, i) => {
+            const isCorrect = isIkigaiLesson || 
+              questionResult.yourResponse === questionResult.correctResponse;
+
             return (
               <button
                 key={i}
                 className={[
                   "relative flex flex-col items-stretch gap-3 rounded-xl p-5 text-left",
-                  questionResult.yourResponse === questionResult.correctResponse
+                  isCorrect
                     ? "bg-yellow-100 text-yellow-600"
                     : "bg-red-100 text-red-500",
                 ].join(" ")}
@@ -827,8 +1257,7 @@ const ReviewLesson = ({
                 <div className="flex justify-between gap-2">
                   <h3 className="font-bold">{questionResult.question}</h3>
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white">
-                    {questionResult.yourResponse ===
-                    questionResult.correctResponse ? (
+                    {isCorrect ? (
                       <DoneSvg className="h-5 w-5" />
                     ) : (
                       <BigCloseSvg className="h-5 w-5" />
@@ -843,17 +1272,21 @@ const ReviewLesson = ({
                       style={{ left: "calc(50% - 6px)" }}
                     ></div>
                     <div className="font-bold uppercase text-gray-400">
-                      Your response:
+                      {isIkigaiLesson ? "Votre réponse :" : "Your response:"}
                     </div>
                     <div className="mb-3 text-gray-700">
                       {questionResult.yourResponse}
                     </div>
-                    <div className="font-bold uppercase text-gray-400">
-                      Correct response:
-                    </div>
-                    <div className="text-gray-700">
-                      {questionResult.correctResponse}
-                    </div>
+                    {!isIkigaiLesson && (
+                      <>
+                        <div className="font-bold uppercase text-gray-400">
+                          Correct response:
+                        </div>
+                        <div className="text-gray-700">
+                          {questionResult.correctResponse}
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </button>
