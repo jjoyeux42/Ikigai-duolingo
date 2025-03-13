@@ -40,7 +40,7 @@ const LeaderboardExplanationSection = () => {
   );
 };
 
-type TimeLeftUnit = "days" | "hours" | "minutes";
+type TimeLeftUnit = "jour" | "heures" | "minutes";
 
 const timeUntilStartOfWeek = (units: TimeLeftUnit): number => {
   const startOfWeekDay = 0;

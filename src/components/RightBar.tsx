@@ -64,7 +64,7 @@ export const RightBar = () => {
               <span className="flex items-center justify-center rounded-lg border-2 border-gray-400 px-2 text-lg font-bold text-gray-400">
                 +
               </span>
-              <span className="text-gray-600">Add new course</span>
+              <span className="text-gray-600">Ajouter un nouveau</span>
             </Link>
           </div>
           <span
@@ -126,7 +126,7 @@ export const RightBar = () => {
               <div className="flex flex-col gap-3">
                 <h2 className="text-xl font-bold text-black">Lingots</h2>
                 <p className="text-sm font-normal text-gray-400">
-                  You have {lingots} {lingots === 1 ? "lingot" : "lingots"}.
+                  Tu as {lingots} {lingots === 1 ? "lingot" : "lingots"}.
                 </p>
                 <Link
                   className="uppercase text-blue-400 transition hover:brightness-110"

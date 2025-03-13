@@ -10,7 +10,7 @@ import { SettingsRightNav } from "~/components/SettingsRightNav";
 const CoachSvg = (props: ComponentProps<"svg">) => {
   return (
     <svg width="124" height="124" viewBox="0 0 124 124" {...props}>
-      <title>owl-coach</title>
+      <title>mon coach</title>
       <g stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
         <g transform="translate(7 7)">
           <path
@@ -149,14 +149,14 @@ const Coach: NextPage = () => {
       <div className="mx-auto flex flex-col gap-5 px-4 py-20 sm:py-10 md:pl-28 lg:pl-72">
         <div className="mx-auto flex w-full max-w-xl items-center justify-between lg:max-w-4xl">
           <h1 className="text-lg font-bold text-gray-800 sm:text-2xl">
-            Edit Daily Goal
+            Objectif quotidien  
           </h1>
           <button
             className="rounded-2xl border-b-4 border-green-600 bg-green-500 px-5 py-3 font-bold uppercase text-white transition hover:brightness-110 disabled:border-b-0 disabled:bg-gray-200 disabled:text-gray-400 disabled:hover:brightness-100"
             onClick={() => setGoalXp(localGoalXp)}
             disabled={localGoalXp === goalXp}
           >
-            Save changes
+            Enregistrer
           </button>
         </div>
         <div className="flex justify-center gap-12">
